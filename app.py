@@ -192,6 +192,32 @@ def applications():
 
     return render_template('applications.html', applications=apps)
 
+@app.route('/application/<int:app_id>')
+def application_detail(app_id):
+    """Application detail page"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+
+    # Get application details
+    app = c.execute('SELECT * FROM applications WHERE id = ?', (app_id,)).fetchone()
+
+    if not app:
+        conn.close()
+        return "Application not found", 404
+
+    # Get services using this application
+    services = c.execute('''
+        SELECT s.*, srv.hostname
+        FROM services s
+        LEFT JOIN servers srv ON s.server_id = srv.id
+        WHERE s.application_id = ?
+    ''', (app_id,)).fetchall()
+
+    conn.close()
+
+    return render_template('application_detail.html', application=app, services=services)
+
 @app.route('/services')
 def services():
     """List all services with their relationships"""

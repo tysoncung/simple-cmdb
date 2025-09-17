@@ -413,6 +413,60 @@ def add_server():
     finally:
         conn.close()
 
+@app.route('/api/server/<int:server_id>', methods=['PUT'])
+def update_server(server_id):
+    """Update server information"""
+    data = request.json
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    try:
+        c.execute('''
+            UPDATE servers SET
+                hostname = ?, ip_address = ?, os_type = ?, os_version = ?,
+                environment = ?, status = ?, owner = ?, location = ?, notes = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (
+            data.get('hostname'), data.get('ip_address'), data.get('os_type'),
+            data.get('os_version'), data.get('environment'), data.get('status'),
+            data.get('owner'), data.get('location'), data.get('notes'),
+            server_id
+        ))
+
+        conn.commit()
+
+        if c.rowcount == 0:
+            return jsonify({'success': False, 'error': 'Server not found'}), 404
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/server/<int:server_id>', methods=['DELETE'])
+def delete_server(server_id):
+    """Delete a server"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    try:
+        c.execute('DELETE FROM servers WHERE id = ?', (server_id,))
+        conn.commit()
+
+        if c.rowcount == 0:
+            return jsonify({'success': False, 'error': 'Server not found'}), 404
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        conn.close()
+
 @app.route('/api/application/add', methods=['POST'])
 def add_application():
     """Add a new application"""
@@ -439,6 +493,60 @@ def add_application():
 
     except sqlite3.IntegrityError:
         return jsonify({'success': False, 'error': 'Application already exists'}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/application/<int:app_id>', methods=['PUT'])
+def update_application(app_id):
+    """Update application information"""
+    data = request.json
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    try:
+        c.execute('''
+            UPDATE applications SET
+                name = ?, version = ?, type = ?, language = ?,
+                criticality = ?, owner = ?, notes = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (
+            data.get('name'), data.get('version'), data.get('type'),
+            data.get('language'), data.get('criticality'),
+            data.get('owner'), data.get('notes'),
+            app_id
+        ))
+
+        conn.commit()
+
+        if c.rowcount == 0:
+            return jsonify({'success': False, 'error': 'Application not found'}), 404
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/application/<int:app_id>', methods=['DELETE'])
+def delete_application(app_id):
+    """Delete an application"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    try:
+        c.execute('DELETE FROM applications WHERE id = ?', (app_id,))
+        conn.commit()
+
+        if c.rowcount == 0:
+            return jsonify({'success': False, 'error': 'Application not found'}), 404
+
+        return jsonify({'success': True})
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:

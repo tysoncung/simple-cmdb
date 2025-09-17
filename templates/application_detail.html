@@ -125,13 +125,106 @@
     </div>
 </div>
 
+<!-- Edit Application Modal -->
+<div class="modal fade" id="editAppModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Application</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editAppForm">
+                    <input type="hidden" id="edit_app_id" value="{{ application.id }}">
+                    <div class="mb-3">
+                        <label class="form-label">Application Name *</label>
+                        <input type="text" class="form-control" id="edit_app_name" value="{{ application.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Version</label>
+                        <input type="text" class="form-control" id="edit_app_version" value="{{ application.version or '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type</label>
+                        <select class="form-control" id="edit_app_type">
+                            <option value="">Select...</option>
+                            <option value="web" {% if application.type == 'web' %}selected{% endif %}>Web Application</option>
+                            <option value="database" {% if application.type == 'database' %}selected{% endif %}>Database</option>
+                            <option value="api" {% if application.type == 'api' %}selected{% endif %}>API Service</option>
+                            <option value="cache" {% if application.type == 'cache' %}selected{% endif %}>Cache</option>
+                            <option value="queue" {% if application.type == 'queue' %}selected{% endif %}>Message Queue</option>
+                            <option value="monitoring" {% if application.type == 'monitoring' %}selected{% endif %}>Monitoring</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Language</label>
+                        <input type="text" class="form-control" id="edit_app_language" value="{{ application.language or '' }}" placeholder="e.g., Python, Java, Node.js">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Criticality</label>
+                        <select class="form-control" id="edit_app_criticality">
+                            <option value="low" {% if application.criticality == 'low' %}selected{% endif %}>Low</option>
+                            <option value="medium" {% if application.criticality == 'medium' %}selected{% endif %}>Medium</option>
+                            <option value="high" {% if application.criticality == 'high' %}selected{% endif %}>High</option>
+                            <option value="critical" {% if application.criticality == 'critical' %}selected{% endif %}>Critical</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Owner</label>
+                        <input type="text" class="form-control" id="edit_app_owner" value="{{ application.owner or '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="edit_app_notes" rows="2">{{ application.notes or '' }}</textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveAppChanges()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
 function editApplication(id) {
-    // TODO: Implement edit functionality
-    alert('Edit functionality coming soon!');
+    // Show the edit modal
+    const modal = new bootstrap.Modal(document.getElementById('editAppModal'));
+    modal.show();
+}
+
+function saveAppChanges() {
+    const id = document.getElementById('edit_app_id').value;
+    const data = {
+        name: document.getElementById('edit_app_name').value,
+        version: document.getElementById('edit_app_version').value,
+        type: document.getElementById('edit_app_type').value,
+        language: document.getElementById('edit_app_language').value,
+        criticality: document.getElementById('edit_app_criticality').value,
+        owner: document.getElementById('edit_app_owner').value,
+        notes: document.getElementById('edit_app_notes').value
+    };
+
+    fetch(`/api/application/${id}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error updating application: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
 }
 
 function deleteApplication(id) {

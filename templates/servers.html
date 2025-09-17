@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Servers - Simple CMDB{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="bi bi-hdd-rack"></i> Servers</h1>
+        <hr>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <input type="text" class="form-control" id="searchInput" placeholder="Search servers..." onkeyup="filterServers()">
+    </div>
+    <div class="col-md-6 text-end">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addServerModal">
+            <i class="bi bi-plus-circle"></i> Add Server
+        </button>
+        <a href="/api/export/servers" class="btn btn-secondary">
+            <i class="bi bi-download"></i> Export CSV
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-hover" id="serversTable">
+                    <thead>
+                        <tr>
+                            <th>Hostname</th>
+                            <th>IP Address</th>
+                            <th>OS</th>
+                            <th>Environment</th>
+                            <th>Status</th>
+                            <th>Owner</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for server in servers %}
+                        <tr>
+                            <td>
+                                <i class="bi bi-server"></i>
+                                <strong>{{ server.hostname }}</strong>
+                            </td>
+                            <td>{{ server.ip_address or 'N/A' }}</td>
+                            <td>{{ server.os_type }} {{ server.os_version or '' }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'danger' if server.environment == 'production' else 'info' }}">
+                                    {{ server.environment }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if server.status == 'active' else 'secondary' }}">
+                                    {{ server.status }}
+                                </span>
+                            </td>
+                            <td>{{ server.owner or '-' }}</td>
+                            <td>
+                                <a href="/server/{{ server.id }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteServer({{ server.id }})">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Server Modal -->
+<div class="modal fade" id="addServerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Server</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addServerForm">
+                    <div class="mb-3">
+                        <label class="form-label">Hostname *</label>
+                        <input type="text" class="form-control" id="hostname" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">IP Address</label>
+                        <input type="text" class="form-control" id="ip_address">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">OS Type</label>
+                        <select class="form-control" id="os_type">
+                            <option value="">Select...</option>
+                            <option value="Linux">Linux</option>
+                            <option value="Windows">Windows</option>
+                            <option value="macOS">macOS</option>
+                            <option value="Unix">Unix</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">OS Version</label>
+                        <input type="text" class="form-control" id="os_version">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Environment</label>
+                        <select class="form-control" id="environment">
+                            <option value="production">Production</option>
+                            <option value="staging">Staging</option>
+                            <option value="development">Development</option>
+                            <option value="testing">Testing</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Owner</label>
+                        <input type="text" class="form-control" id="owner">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addServer()">Add Server</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterServers() {
+    const input = document.getElementById('searchInput');
+    const filter = input.value.toUpperCase();
+    const table = document.getElementById('serversTable');
+    const tr = table.getElementsByTagName('tr');
+
+    for (let i = 1; i < tr.length; i++) {
+        let visible = false;
+        const td = tr[i].getElementsByTagName('td');
+        for (let j = 0; j < td.length; j++) {
+            if (td[j] && td[j].textContent.toUpperCase().indexOf(filter) > -1) {
+                visible = true;
+            }
+        }
+        tr[i].style.display = visible ? '' : 'none';
+    }
+}
+
+function addServer() {
+    const data = {
+        hostname: document.getElementById('hostname').value,
+        ip_address: document.getElementById('ip_address').value,
+        os_type: document.getElementById('os_type').value,
+        os_version: document.getElementById('os_version').value,
+        environment: document.getElementById('environment').value,
+        owner: document.getElementById('owner').value,
+        notes: document.getElementById('notes').value
+    };
+
+    fetch('/api/server/add', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+function deleteServer(id) {
+    if (confirm('Are you sure you want to delete this server?')) {
+        fetch(`/api/server/${id}`, {method: 'DELETE'})
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+    }
+}
+</script>
+{% endblock %}

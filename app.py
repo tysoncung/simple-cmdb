@@ -244,22 +244,47 @@ def dependencies():
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
+    # Get all dependencies with service names
     deps = c.execute('''
         SELECT d.*,
-               s1.service_name as source_service,
-               s2.service_name as target_service,
-               srv1.hostname as source_server,
-               srv2.hostname as target_server
+               s1.service_name as source_name,
+               s2.service_name as target_name
         FROM dependencies d
-        JOIN services s1 ON d.source_service_id = s1.id
-        JOIN services s2 ON d.target_service_id = s2.id
-        JOIN servers srv1 ON s1.server_id = srv1.id
-        JOIN servers srv2 ON s2.server_id = srv2.id
+        LEFT JOIN services s1 ON d.source_service_id = s1.id
+        LEFT JOIN services s2 ON d.target_service_id = s2.id
+        ORDER BY s1.service_name, s2.service_name
+    ''').fetchall()
+
+    # Get services for dropdown
+    services = c.execute('SELECT * FROM services ORDER BY service_name').fetchall()
+
+    # Get critical services (those that many depend on)
+    critical_services = c.execute('''
+        SELECT s.service_name as name, COUNT(d.id) as dep_count
+        FROM services s
+        JOIN dependencies d ON s.id = d.target_service_id
+        GROUP BY s.id
+        ORDER BY dep_count DESC
+        LIMIT 5
+    ''').fetchall()
+
+    # Get most dependent services (those that depend on many others)
+    dependent_services = c.execute('''
+        SELECT s.service_name as name, COUNT(d.id) as dep_count
+        FROM services s
+        JOIN dependencies d ON s.id = d.source_service_id
+        GROUP BY s.id
+        ORDER BY dep_count DESC
+        LIMIT 5
     ''').fetchall()
 
     conn.close()
 
-    return render_template('dependencies.html', dependencies=deps)
+    return render_template('dependencies.html',
+                         dependencies=deps,
+                         services=services,
+                         critical_services=critical_services,
+                         dependent_services=dependent_services)
 
 @app.route('/discover')
 def discover():

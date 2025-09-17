@@ -237,6 +237,48 @@ def services():
 
     return render_template('services.html', services=services_list)
 
+@app.route('/service/<int:service_id>')
+def service_detail(service_id):
+    """Service detail page"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+
+    # Get service details with server and application info
+    service = c.execute('''
+        SELECT s.*, srv.hostname, srv.ip_address, a.name as app_name
+        FROM services s
+        LEFT JOIN servers srv ON s.server_id = srv.id
+        LEFT JOIN applications a ON s.application_id = a.id
+        WHERE s.id = ?
+    ''', (service_id,)).fetchone()
+
+    if not service:
+        conn.close()
+        return "Service not found", 404
+
+    # Get dependencies where this service is involved
+    dependencies_from = c.execute('''
+        SELECT d.*, s2.service_name as target_name
+        FROM dependencies d
+        LEFT JOIN services s2 ON d.target_service_id = s2.id
+        WHERE d.source_service_id = ?
+    ''', (service_id,)).fetchall()
+
+    dependencies_to = c.execute('''
+        SELECT d.*, s1.service_name as source_name
+        FROM dependencies d
+        LEFT JOIN services s1 ON d.source_service_id = s1.id
+        WHERE d.target_service_id = ?
+    ''', (service_id,)).fetchall()
+
+    conn.close()
+
+    return render_template('service_detail.html',
+                         service=service,
+                         dependencies_from=dependencies_from,
+                         dependencies_to=dependencies_to)
+
 @app.route('/dependencies')
 def dependencies():
     """Show service dependencies"""
@@ -575,6 +617,60 @@ def add_service():
         service_id = c.lastrowid
 
         return jsonify({'success': True, 'service_id': service_id})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/service/<int:service_id>', methods=['PUT'])
+def update_service(service_id):
+    """Update service information"""
+    data = request.json
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    try:
+        c.execute('''
+            UPDATE services SET
+                service_name = ?, port = ?, protocol = ?, status = ?,
+                process_name = ?, start_command = ?, config_file = ?, log_file = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (
+            data.get('service_name'), data.get('port'), data.get('protocol'),
+            data.get('status'), data.get('process_name'), data.get('start_command'),
+            data.get('config_file'), data.get('log_file'),
+            service_id
+        ))
+
+        conn.commit()
+
+        if c.rowcount == 0:
+            return jsonify({'success': False, 'error': 'Service not found'}), 404
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/api/service/<int:service_id>', methods=['DELETE'])
+def delete_service(service_id):
+    """Delete a service"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    try:
+        c.execute('DELETE FROM services WHERE id = ?', (service_id,))
+        conn.commit()
+
+        if c.rowcount == 0:
+            return jsonify({'success': False, 'error': 'Service not found'}), 404
+
+        return jsonify({'success': True})
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

@@ -531,6 +531,25 @@ def api_stats():
 
     return jsonify(stats)
 
+@app.route('/api/discovery/history')
+def discovery_history():
+    """Get discovery history"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+
+    history = c.execute('''
+        SELECT * FROM discovery_history
+        ORDER BY created_at DESC
+        LIMIT 20
+    ''').fetchall()
+
+    conn.close()
+
+    return jsonify({
+        'history': [dict(h) for h in history]
+    })
+
 @app.route('/api/export/<table>')
 def export_table(table):
     """Export table data as CSV"""

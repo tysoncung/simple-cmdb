@@ -37,24 +37,24 @@ def create_demo_data():
 
     print("Adding demo applications...")
     applications = [
-        ('E-Commerce Platform', '3.2.1', 'web', 'Java', 'critical', 'active', 'Product Team', 'Main e-commerce application'),
-        ('Customer API', '2.1.0', 'api', 'Python', 'critical', 'active', 'API Team', 'Customer data API'),
-        ('Payment Gateway', '1.5.3', 'api', 'Go', 'critical', 'active', 'Payment Team', 'Payment processing service'),
-        ('MySQL Database', '8.0.32', 'database', 'SQL', 'critical', 'active', 'Database Team', 'Primary database'),
-        ('Redis Cache', '7.0.5', 'cache', 'C', 'high', 'active', 'DevOps Team', 'In-memory cache'),
-        ('Elasticsearch', '8.7.0', 'database', 'Java', 'high', 'active', 'Search Team', 'Search engine'),
-        ('RabbitMQ', '3.11.13', 'queue', 'Erlang', 'high', 'active', 'Messaging Team', 'Message broker'),
-        ('Prometheus', '2.42.0', 'monitoring', 'Go', 'medium', 'active', 'SRE Team', 'Metrics monitoring'),
-        ('Grafana', '9.4.7', 'monitoring', 'Go', 'medium', 'active', 'SRE Team', 'Metrics visualization'),
-        ('Jenkins', '2.387.1', 'ci/cd', 'Java', 'medium', 'active', 'DevOps Team', 'CI/CD automation'),
-        ('Nginx', '1.22.1', 'web', 'C', 'high', 'active', 'DevOps Team', 'Web server/Load balancer'),
-        ('Backup Manager', '2.0.1', 'utility', 'Python', 'high', 'active', 'Ops Team', 'Backup automation'),
+        ('E-Commerce Platform', '3.2.1', 'web', 'Java', 'critical', 'Product Team', 'Main e-commerce application'),
+        ('Customer API', '2.1.0', 'api', 'Python', 'critical', 'API Team', 'Customer data API'),
+        ('Payment Gateway', '1.5.3', 'api', 'Go', 'critical', 'Payment Team', 'Payment processing service'),
+        ('MySQL Database', '8.0.32', 'database', 'SQL', 'critical', 'Database Team', 'Primary database'),
+        ('Redis Cache', '7.0.5', 'cache', 'C', 'high', 'DevOps Team', 'In-memory cache'),
+        ('Elasticsearch', '8.7.0', 'database', 'Java', 'high', 'Search Team', 'Search engine'),
+        ('RabbitMQ', '3.11.13', 'queue', 'Erlang', 'high', 'Messaging Team', 'Message broker'),
+        ('Prometheus', '2.42.0', 'monitoring', 'Go', 'medium', 'SRE Team', 'Metrics monitoring'),
+        ('Grafana', '9.4.7', 'monitoring', 'Go', 'medium', 'SRE Team', 'Metrics visualization'),
+        ('Jenkins', '2.387.1', 'ci/cd', 'Java', 'medium', 'DevOps Team', 'CI/CD automation'),
+        ('Nginx', '1.22.1', 'web', 'C', 'high', 'DevOps Team', 'Web server/Load balancer'),
+        ('Backup Manager', '2.0.1', 'utility', 'Python', 'high', 'Ops Team', 'Backup automation'),
     ]
 
     for app in applications:
         cursor.execute('''
-            INSERT OR IGNORE INTO applications (name, version, type, language, criticality, status, owner, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT OR IGNORE INTO applications (name, version, type, language, criticality, owner, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', app)
 
     print("Adding demo services...")
@@ -85,14 +85,14 @@ def create_demo_data():
     service_ids = {}
     for service in services:
         cursor.execute('''
-            INSERT OR IGNORE INTO services (name, server_id, application_id, port, protocol, status)
+            INSERT OR IGNORE INTO services (service_name, server_id, application_id, port, protocol, status)
             VALUES (?, ?, ?, ?, ?, ?)
         ''', service)
         service_ids[service[0]] = cursor.lastrowid
 
     print("Adding demo dependencies...")
     # Get service IDs
-    cursor.execute('SELECT id, name FROM services')
+    cursor.execute('SELECT id, service_name FROM services')
     service_map = {name: id for id, name in cursor.fetchall()}
 
     dependencies = [

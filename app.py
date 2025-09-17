@@ -570,8 +570,9 @@ def import_table(table):
 if __name__ == '__main__':
     init_db()
 
+    port = int(os.environ.get('PORT', 5000))
     # Check if running in Docker
     if os.environ.get('DOCKER_CONTAINER'):
-        app.run(host='0.0.0.0', port=5000, debug=False)
+        app.run(host='0.0.0.0', port=port, debug=False)
     else:
-        app.run(host='0.0.0.0', port=5000, debug=True)
+        app.run(host='0.0.0.0', port=port, debug=True)

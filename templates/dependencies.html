@@ -186,20 +186,124 @@ function deleteDependency(id) {
     }
 }
 
-// Simple dependency visualization
+// Dependency visualization
 window.addEventListener('load', () => {
-    const canvas = document.getElementById('depCanvas');
-    if (canvas && canvas.getContext) {
-        const ctx = canvas.getContext('2d');
-        canvas.width = canvas.parentElement.offsetWidth;
-        canvas.height = 400;
-        
-        // Draw placeholder
-        ctx.font = '16px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Dependency visualization will be rendered here', canvas.width/2, canvas.height/2);
-        ctx.fillText('(Connect to services to see relationships)', canvas.width/2, canvas.height/2 + 25);
-    }
+    drawDependencyMap();
 });
+
+function drawDependencyMap() {
+    // Get dependencies data from the page
+    const dependencies = [
+        {% for dep in dependencies %}
+        {
+            source: "{{ dep.source_name }}",
+            target: "{{ dep.target_name }}",
+            description: "{{ dep.description or '' }}"
+        },
+        {% endfor %}
+    ];
+
+    if (dependencies.length === 0) {
+        const canvas = document.getElementById('depCanvas');
+        if (canvas && canvas.getContext) {
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.parentElement.offsetWidth;
+            canvas.height = 400;
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('No dependencies defined yet', canvas.width/2, canvas.height/2);
+            ctx.fillText('Add dependencies to see the visualization', canvas.width/2, canvas.height/2 + 25);
+        }
+        return;
+    }
+
+    // Create a simple force-directed graph visualization
+    const container = document.getElementById('dependencyChart');
+    container.innerHTML = ''; // Clear existing content
+
+    // Create SVG
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', '400');
+    svg.style.border = '1px solid #ddd';
+    container.appendChild(svg);
+
+    // Get unique nodes
+    const nodes = new Map();
+    dependencies.forEach(dep => {
+        if (!nodes.has(dep.source)) nodes.set(dep.source, { id: dep.source, x: 0, y: 0 });
+        if (!nodes.has(dep.target)) nodes.set(dep.target, { id: dep.target, x: 0, y: 0 });
+    });
+
+    // Position nodes in a circle
+    const width = container.offsetWidth;
+    const height = 400;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(width, height) / 3;
+
+    const nodeArray = Array.from(nodes.values());
+    nodeArray.forEach((node, i) => {
+        const angle = (i * 2 * Math.PI) / nodeArray.length;
+        node.x = centerX + radius * Math.cos(angle);
+        node.y = centerY + radius * Math.sin(angle);
+    });
+
+    // Draw edges (dependencies)
+    dependencies.forEach(dep => {
+        const source = nodes.get(dep.source);
+        const target = nodes.get(dep.target);
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', source.x);
+        line.setAttribute('y1', source.y);
+        line.setAttribute('x2', target.x);
+        line.setAttribute('y2', target.y);
+        line.setAttribute('stroke', '#999');
+        line.setAttribute('stroke-width', '2');
+        line.setAttribute('marker-end', 'url(#arrowhead)');
+        svg.appendChild(line);
+    });
+
+    // Add arrow marker definition
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+    marker.setAttribute('id', 'arrowhead');
+    marker.setAttribute('markerWidth', '10');
+    marker.setAttribute('markerHeight', '10');
+    marker.setAttribute('refX', '9');
+    marker.setAttribute('refY', '3');
+    marker.setAttribute('orient', 'auto');
+
+    const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    polygon.setAttribute('points', '0 0, 10 3, 0 6');
+    polygon.setAttribute('fill', '#999');
+    marker.appendChild(polygon);
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+
+    // Draw nodes
+    nodeArray.forEach(node => {
+        // Node circle
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', node.x);
+        circle.setAttribute('cy', node.y);
+        circle.setAttribute('r', '30');
+        circle.setAttribute('fill', '#0d6efd');
+        circle.setAttribute('stroke', '#fff');
+        circle.setAttribute('stroke-width', '2');
+        svg.appendChild(circle);
+
+        // Node label
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', node.x);
+        text.setAttribute('y', node.y + 40);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('font-size', '12');
+        text.setAttribute('fill', '#333');
+        text.textContent = node.id;
+        svg.appendChild(text);
+    });
+}
 </script>
 {% endblock %}

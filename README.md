@@ -131,6 +131,24 @@ curl -X POST http://localhost:5000/api/server/add \
 curl http://localhost:5000/api/export/servers > servers.csv
 ```
 
+### Application repository and documentation URLs
+
+`POST /api/application/add` accepts optional `repository_url` and
+`documentation_url` fields. `PUT /api/application/<id>` can update either field:
+fields omitted from the request retain their stored values; explicit `null`
+clears a URL. Existing clients can continue to omit both fields.
+
+These fields already exist in the database, so no schema migration is needed.
+They are available in the existing `GET /api/export/applications` CSV output.
+For example, a partial update can change the repository URL while preserving
+all other application fields:
+
+```bash
+curl -X PUT http://localhost:5000/api/application/1 \
+  -H "Content-Type: application/json" \
+  -d '{"repository_url": "https://github.com/example/project"}'
+```
+
 ## Discovery Scripts
 
 ### Linux Discovery

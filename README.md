@@ -131,6 +131,19 @@ curl -X POST http://localhost:5000/api/server/add \
 curl http://localhost:5000/api/export/servers > servers.csv
 ```
 
+### Service instance versions
+
+`POST /api/service/add` accepts an optional `version` string for the installed
+version of that service instance. `PUT /api/service/<id>` updates it: omitting
+`version` preserves the stored value, and explicit `null` clears it. Versions
+appear on service detail pages and in `GET /api/export/services` CSV output.
+
+Instances linked to the same application can have different versions. The existing
+application-level `version` field remains unchanged and is not copied to services.
+On startup, existing databases receive a nullable service `version` column;
+existing services retain their IDs and relationships and have an unknown (`NULL`)
+version until explicitly updated. Back up the database before upgrading.
+
 ## Discovery Scripts
 
 ### Linux Discovery

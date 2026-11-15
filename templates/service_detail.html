@@ -35,6 +35,10 @@
                         <td>{{ service.service_name }}</td>
                     </tr>
                     <tr>
+                        <th>Version</th>
+                        <td>{{ service.version or 'N/A' }}</td>
+                    </tr>
+                    <tr>
                         <th>Server</th>
                         <td>
                             {% if service.server_id %}

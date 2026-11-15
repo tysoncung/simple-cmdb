@@ -101,6 +101,11 @@ def init_db():
         )
     ''')
 
+    # Upgrade existing databases without changing service IDs or relationships.
+    columns = {row['name'] for row in c.execute('PRAGMA table_info(services)')}
+    if 'version' not in columns:
+        c.execute('ALTER TABLE services ADD COLUMN version TEXT')
+
     # Dependencies table
     c.execute('''
         CREATE TABLE IF NOT EXISTS dependencies (
@@ -621,12 +626,13 @@ def add_service():
     try:
         c.execute('''
             INSERT INTO services
-            (server_id, application_id, service_name, port, protocol, status)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (server_id, application_id, service_name, port, protocol, status, version)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (
             data['server_id'], data.get('application_id'),
             data['service_name'], data.get('port'),
-            data.get('protocol', 'tcp'), data.get('status', 'running')
+            data.get('protocol', 'tcp'), data.get('status', 'running'),
+            data.get('version')
         ))
 
         conn.commit()
@@ -652,7 +658,7 @@ def update_service(service_id):
     c = conn.cursor()
 
     try:
-        allowed = ['service_name', 'port', 'protocol', 'status',
+        allowed = ['service_name', 'version', 'port', 'protocol', 'status',
                    'process_name', 'start_command', 'config_file', 'log_file']
         updates = {field: data[field] for field in allowed if field in data}
 

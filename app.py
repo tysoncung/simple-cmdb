@@ -533,12 +533,14 @@ def add_application():
     try:
         c.execute('''
             INSERT INTO applications
-            (name, version, type, language, owner, criticality, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (name, version, type, language, owner, criticality, notes,
+             repository_url, documentation_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             data['name'], data.get('version'), data.get('type'),
             data.get('language'), data.get('owner'),
-            data.get('criticality', 'medium'), data.get('notes')
+            data.get('criticality', 'medium'), data.get('notes'),
+            data.get('repository_url'), data.get('documentation_url')
         ))
 
         conn.commit()
@@ -567,7 +569,7 @@ def update_application(app_id):
 
     try:
         allowed = ['name', 'version', 'type', 'language',
-                   'criticality', 'owner', 'notes']
+                   'criticality', 'owner', 'notes', 'repository_url', 'documentation_url']
         updates = {field: data[field] for field in allowed if field in data}
 
         set_clause = ', '.join(
